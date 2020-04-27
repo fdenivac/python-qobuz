@@ -162,7 +162,7 @@ class User(object):
 
         return status.get("status") == "true"
 
-    def favorites_get(self, fav_type=None, limit=50, offset=0):
+    def favorites_get(self, fav_type=None, limit=50, offset=0, raw=False):
         """Get all favorites for the user.
 
         Parameters
@@ -173,6 +173,8 @@ class User(object):
             Number of elements returned per request
         offset: int
             Offset from which to obtain limit elements
+        raw: bool
+            results will be returned as json if True
 
         Returns
         -------
@@ -186,6 +188,9 @@ class User(object):
             offset=offset,
             user_auth_token=self.auth_token,
         )
+
+        if raw:
+            return favorites
 
         if fav_type == "artists":
             return [Artist(f) for f in favorites["artists"]["items"]]
@@ -203,7 +208,7 @@ class User(object):
             )
             return all_favorites
 
-    def playlists_get(self, filter="owner", limit=50, offset=0):
+    def playlists_get(self, filter="owner", limit=50, offset=0, raw=False):
         result = api.request(
             "playlist/getUserPlaylists",
             filter=filter,
@@ -212,6 +217,8 @@ class User(object):
             user_auth_token=self.auth_token,
         )
 
+        if raw:
+            return result
         return [Playlist(p, user=self) for p in result["playlists"]["items"]]
 
     def playlist_create(
@@ -246,7 +253,7 @@ class User(object):
 
         Parameters
         ----------
-        playlist: Playlist
+        playlist: Playlist or int (playlist id)
             Playlist to be deleted
 
         Returns
@@ -254,9 +261,13 @@ class User(object):
         bool
             Successfully deleted playlist
         """
+        if isinstance(playlist, int):
+            id = playlist
+        else:
+            id = playlist.id
         status = api.request(
             "playlist/delete",
-            playlist_id=playlist.id,
+            playlist_id=id,
             user_auth_token=self.auth_token,
         )
 

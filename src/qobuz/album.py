@@ -10,12 +10,13 @@ class Album(object):
         Dictionary as returned from the JSON-API to represent a album
 
         Keys should include:
-        'id', 'title', 'tracks_count', 'released_at', and 'artist'
+        'id', 'title', 'tracks_count', 'released_at', 'artist', 'images'
     """
 
     __slots__ = [
         "id",
         "title",
+        "images",
         "tracks_count",
         "released_at",
         "artist",
@@ -25,10 +26,12 @@ class Album(object):
     def __init__(self, album_item):
         self.id = album_item.get("id")
         self.title = album_item.get("title")
+        self.images = album_item.get("image")       # dict of urls on images
         self.tracks_count = album_item.get("tracks_count")
         self.released_at = album_item.get("released_at")
         self.artist = qobuz.Artist(album_item["artist"])
         self._tracks = None
+
 
     @property
     def type(self):
@@ -81,7 +84,7 @@ class Album(object):
         return [cls(a) for a in albums["albums"]["items"]]
 
     @classmethod
-    def search(cls, query, limit=50, offset=0):
+    def search(cls, query, limit=50, offset=0, raw=False):
         """Search for a album.
 
         Parameters
@@ -92,6 +95,8 @@ class Album(object):
             Number of elements returned per request
         offset: int
             Offset from which to obtain limit elements
+        raw: bool
+            results will be returned as json if True
 
         Returns
         -------
@@ -101,5 +106,8 @@ class Album(object):
         albums = qobuz.api.request(
             "album/search", query=query, offset=offset, limit=limit
         )
+
+        if raw:
+            return albums
 
         return [cls(a) for a in albums["albums"]["items"]]

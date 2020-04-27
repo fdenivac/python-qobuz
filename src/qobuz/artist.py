@@ -10,10 +10,10 @@ class Artist(object):
         Dictionary as returned from the JSON-API to represent an artist
 
         Keys should include:
-        'id', 'name', 'picture', 'slug', and 'album_count'
+        'id', 'name', 'picture', 'slug', 'album_count', 'biography'
     """
 
-    __slots__ = ["id", "name", "picture", "slug", "albums_count"]
+    __slots__ = ["id", "name", "picture", "slug", "albums_count", "biography"]
 
     def __init__(self, artist_item):
         self.id = artist_item.get("id")
@@ -21,6 +21,7 @@ class Artist(object):
         self.picture = artist_item.get("picture")
         self.slug = artist_item.get("slug")
         self.albums_count = artist_item.get("albums_count")
+        self.biography = artist_item.get("biography", {}).get("summary")
 
     def __eq__(self, other):
         return (
@@ -76,7 +77,7 @@ class Artist(object):
         return cls(qobuz.api.request("artist/get", artist_id=id))
 
     @classmethod
-    def search(cls, artist, limit=50, offset=0):
+    def search(cls, artist, limit=50, offset=0, raw=False):
         """Search for an artist.
 
         Parameters
@@ -87,6 +88,8 @@ class Artist(object):
             Number of elements returned per request
         offset: int
             Offset from which to obtain limit elements
+        raw: bool
+            results will be returned as json if True
 
         Returns
         -------
@@ -96,5 +99,8 @@ class Artist(object):
         req = qobuz.api.request(
             "artist/search", query=artist, limit=limit, offset=offset
         )
+
+        if raw:
+            return req
 
         return [cls(a) for a in req["artists"]["items"]]

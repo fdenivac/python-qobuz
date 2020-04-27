@@ -10,17 +10,20 @@ class Playlist(object):
         Dictionary as returned from the JSON-API to represent a playist
 
         Keys should include:
-        'id', 'name', and 'description'
+        'id', 'name', 'description', 'duration', 'public', 'collaborative',
     user: User
         Add when the playlist is your own, otherwise tracks won't be accessible
     """
 
-    __slots__ = ["id", "name", "description", "_user"]
+    __slots__ = ["id", "name", "description", "duration", "public", "collaborative", "_user"]
 
     def __init__(self, playlist_item, user=None):
         self.id = playlist_item.get("id")
         self.name = playlist_item.get("name")
         self.description = playlist_item.get("description")
+        self.duration = playlist_item.get("duration")
+        self.public = playlist_item.get("is_public")
+        self.collaborative = playlist_item.get("is_collaborative")
         self._user = user
 
     def __eq__(self, other):
@@ -85,14 +88,17 @@ class Playlist(object):
 
         Parameters
         ----------
-        tracks: list: Track
+        tracks: list: Track or int (track id)
             Tracks to be added
         own: User
             Adding tracks requires a logged in User
         max_elements_per_request: int
             Split the request into multiple. Each with at most this many tracks
         """
-        track_ids = [t.id for t in tracks]
+        if isinstance(tracks[0], int):
+            track_ids = tracks
+        else:
+            track_ids = [t.id for t in tracks]
 
         for c in self._split_into_chunks(track_ids, max_elements_per_request):
             api.request(
