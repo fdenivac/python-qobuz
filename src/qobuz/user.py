@@ -68,75 +68,84 @@ class User(object):
 
         return resp.get("status") == "success"
 
-    def favorites_add(self, obj):
-        """Add artist/album/track to user's favorites.
 
-        Parameters
+    def _get_params_ids(self, kwargs):
+        """Get parameters ids from kwarg
+        """
+        def get_ids(args, name):
+            value = args.get(name)
+            if not value: 
+                return None
+            if not isinstance(value, list):
+                value = [value]
+            if len(value) == 0:
+                return None
+            if isinstance(value[0], int) or isinstance(value[0], str):
+                return value
+            return [v.id for v in value]
+
+        params = {}
+        params["user_auth_token"] = self.auth_token
+
+        artist_ids = get_ids(kwargs, 'artists')
+        if artist_ids:
+            params["artist_ids"] = ",".join(map(str, artist_ids))
+
+        albums_ids = get_ids(kwargs, 'albums')
+        if albums_ids:
+            params["albums_ids"] = ",".join(map(str, albums_ids))
+
+        tracks_ids = get_ids(kwargs, 'tracks')
+        if tracks_ids:
+            params["tracks_ids"] = ",".join(map(str, tracks_ids))
+        return params
+
+
+    def favorites_add(self, **kwargs):
+        """Add artists/albums/tracks to user's favorites.
+
+        kwargs
         ----------
-        obj: Artist/Album/Track
-            Object to be added to the favorites
+        artists : Artist, int, str or list of these
+        albums : Album, int or str or list of these
+        tracks : Track, int, str or list of these
 
         Returns
         -------
         bool
             Successfully added to favorites
         """
-        if isinstance(obj, Artist):
-            status = api.request(
-                "favorite/create",
-                artist_ids=obj.id,
-                user_auth_token=self.auth_token,
-            )
-        elif isinstance(obj, Album):
-            status = api.request(
-                "favorite/create",
-                album_ids=obj.id,
-                user_auth_token=self.auth_token,
-            )
-        elif isinstance(obj, Track):
-            status = api.request(
-                "favorite/create",
-                track_ids=obj.id,
-                user_auth_token=self.auth_token,
-            )
-        else:
-            raise TypeError("obj must be Artist, Album or Track")
+
+        params = self._get_params_ids(kwargs)
+        print(params)  # TODO
+        status = api.request(
+            "favorite/create",
+            **params,
+        )
 
         return status.get("status") == "success"
 
-    def favorites_del(self, obj):
-        """Delete artist/album/track from favorites.
+    def favorites_del(self, **kwargs):
+        """Delete artists/albums/tracks from favorites.
 
         Parameters
         ----------
-        obj: Artist/Album/Track
-            Object to be added to the favorites
+        artists : Artist, int, str or list of these
+        albums : Album, int or str or list of these
+        tracks : Track, int, str or list of these
 
         Returns
         -------
         bool
             Successfully deleted from favorites
         """
-        if isinstance(obj, Artist):
-            status = api.request(
-                "favorite/delete",
-                artist_ids=obj.id,
-                user_auth_token=self.auth_token,
-            )
-        elif isinstance(obj, Album):
-            status = api.request(
-                "favorite/delete",
-                album_ids=obj.id,
-                user_auth_token=self.auth_token,
-            )
-        elif isinstance(obj, Track):
-            status = api.request(
-                "favorite/delete",
-                track_ids=obj.id,
-                user_auth_token=self.auth_token,
-            )
-        else:
-            raise TypeError("obj must be Artist, Album or Track")
+
+        params = self._get_params_ids(kwargs)
+        print(params)   # TODO
+        status = api.request(
+            "favorite/delete",
+            **params,
+        )
 
         return status.get("status") == "success"
 
