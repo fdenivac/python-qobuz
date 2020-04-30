@@ -69,36 +69,60 @@ class User(object):
         return resp.get("status") == "success"
 
 
-    def _get_params_ids(self, kwargs):
-        """Get parameters ids from kwarg
+    def _get_params_splitted(self, kwargs, chunk_size=50):
+        """Get all ids from kwarg, split params into chunk
         """
         def get_ids(args, name):
             value = args.get(name)
             if not value: 
-                return None
+                return []
             if not isinstance(value, list):
                 value = [value]
             if len(value) == 0:
-                return None
+                return []
             if isinstance(value[0], int) or isinstance(value[0], str):
                 return value
             return [v.id for v in value]
 
-        params = {}
-        params["user_auth_token"] = self.auth_token
-
         artist_ids = get_ids(kwargs, 'artists')
-        if artist_ids:
-            params["artist_ids"] = ",".join(map(str, artist_ids))
+        album_ids = get_ids(kwargs, 'albums')
+        track_ids = get_ids(kwargs, 'tracks')
 
-        albums_ids = get_ids(kwargs, 'albums')
-        if albums_ids:
-            params["albums_ids"] = ",".join(map(str, albums_ids))
+        params_split = list()
+        while True:
+            params = {}
+            params["user_auth_token"] = self.auth_token
+            cur_size = 0
 
-        tracks_ids = get_ids(kwargs, 'tracks')
-        if tracks_ids:
-            params["tracks_ids"] = ",".join(map(str, tracks_ids))
-        return params
+            ids, artist_ids = artist_ids[:chunk_size], artist_ids[chunk_size:]
+            if len(ids):
+                params["artist_ids"] = ids
+                cur_size += len(ids) 
+                if cur_size == chunk_size:
+                    params_split.append(params)
+                    continue
+
+            ids, album_ids = album_ids[:chunk_size - cur_size], album_ids[chunk_size - cur_size:]
+            if len(ids):
+                params["album_ids"] = ids
+                cur_size += len(ids) 
+                if cur_size == chunk_size:
+                    params_split.append(params)
+                    continue
+
+            ids, track_ids = track_ids[:chunk_size - cur_size], track_ids[chunk_size - cur_size:]
+            if len(ids):
+                params["track_ids"] = ids
+                cur_size += len(ids)
+                if cur_size == chunk_size:
+                    params_split.append(params)
+                    continue
+
+            if cur_size > 0:
+                params_split.append(params)
+            break
+
+        return params_split
 
 
     def favorites_add(self, **kwargs):
@@ -116,14 +140,14 @@ class User(object):
             Successfully added to favorites
         """
 
-        params = self._get_params_ids(kwargs)
-        print(params)  # TODO
-        status = api.request(
-            "favorite/create",
-            **params,
-        )
-
-        return status.get("status") == "success"
+        for params in  self._get_params_splitted(kwargs):
+            status = api.request(
+                "favorite/create",
+                **params
+            )
+            if status.get("status") != "success":
+                return False
+        return True
 
     def favorites_del(self, **kwargs):
         """Delete artists/albums/tracks from favorites.
@@ -140,14 +164,14 @@ class User(object):
             Successfully deleted from favorites
         """
 
-        params = self._get_params_ids(kwargs)
-        print(params)   # TODO
-        status = api.request(
-            "favorite/delete",
-            **params,
-        )
-
-        return status.get("status") == "success"
+        for params in  self._get_params_splitted(kwargs):
+            status = api.request(
+                "favorite/delete",
+                **params,
+            )
+            if status.get("status") != "success":
+                return False
+        return True
 
     def favorites_status(self, obj):
         """Get status whether obj is in the favorites.
