@@ -10,12 +10,12 @@ class Playlist(object):
         Dictionary as returned from the JSON-API to represent a playist
 
         Keys should include:
-        'id', 'name', 'description', 'duration', 'public', 'collaborative',
+        'id', 'name', 'description', 'duration', 'public', 'collaborative', 'tracks_count', 'update_at',
     user: User
         Add when the playlist is your own, otherwise tracks won't be accessible
     """
 
-    __slots__ = ["id", "name", "description", "duration", "public", "collaborative", "_user"]
+    __slots__ = ["id", "name", "description", "duration", "public", "collaborative", "tracks_count", "updated_at", "_user"]
 
     def __init__(self, playlist_item, user=None):
         self.id = playlist_item.get("id")
@@ -24,6 +24,8 @@ class Playlist(object):
         self.duration = playlist_item.get("duration")
         self.public = playlist_item.get("is_public")
         self.collaborative = playlist_item.get("is_collaborative")
+        self.tracks_count = playlist_item.get("tracks_count")
+        self.updated_at = playlist_item.get("updated_at")
         self._user = user
 
     def __eq__(self, other):
@@ -33,7 +35,7 @@ class Playlist(object):
             and self.description == other.description
         )
 
-    def get_tracks(self, limit=50, offset=0):
+    def get_tracks(self, limit=50, offset=0, raw=False):
         """Tracks of the playlist.
 
         Parameters
@@ -42,6 +44,8 @@ class Playlist(object):
             Number of elements returned per request
         offset: int
             Offset from which to obtain limit elements
+        raw: bool
+            results will be returned as json if True
 
         Returns
         -------
@@ -58,6 +62,9 @@ class Playlist(object):
             user_auth_token=token,
             offset=offset,
         )
+
+        if raw:
+            return playlist
 
         return [Track(t) for t in playlist["tracks"]["items"]]
 
@@ -117,21 +124,24 @@ class Playlist(object):
 
         Parameters
         ----------
-        tracks: list: Track
-            Tracks to be deleted
+        tracks: list: Track or int (playlist track id)
+            Tracks to be deleted. Note that the id used here, is Track.playlist_track_id, returned via Playlist.get_tracks
         own: User
             Deleting tracks requires a logged in User
         max_elements_per_request: int
             Split the request into multiple. Each with at most this many tracks
         """
-        track_ids = [t.id for t in tracks]
+        if isinstance(tracks[0], int):
+            track_ids = tracks
+        else:
+            track_ids = [t.playlist_track_id for t in tracks]
 
         for c in self._split_into_chunks(track_ids, max_elements_per_request):
             api.request(
                 "playlist/deleteTracks",
                 playlist_id=self.id,
                 comma_encoding=False,
-                track_ids=",".join(map(str, c)),
+                playlist_track_ids=",".join(map(str, c)),
                 user_auth_token=own.auth_token,
             )
 

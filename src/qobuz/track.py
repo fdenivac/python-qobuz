@@ -18,12 +18,13 @@ class Track(object):
         Dictionary as returned from the JSON-API to represent a track
 
         Keys should include:
-        'id', 'title', 'album', 'performer', 'duration', 'media_number',
+        'id', 'playlist_track_id', 'title', 'album', 'performer', 'duration', 'media_number',
         'track_number', 'performers'
     """
 
     __slots__ = [
         "id",
+        "playlist_track_id",
         "title",
         "album",
         "duration",
@@ -37,6 +38,7 @@ class Track(object):
 
     def __init__(self, track_item, album=None):
         self.id = track_item.get("id")
+        self.playlist_track_id = track_item.get("playlist_track_id")
         self.title = track_item.get("title")
         if album is not None:
             self.album = album
