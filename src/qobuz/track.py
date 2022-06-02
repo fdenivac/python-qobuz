@@ -56,12 +56,8 @@ class Track(object):
         self._performer_id = track_item.get("performer", {}).get("id")
         self._artist = None
 
-        maximum_bit_depth = track_item.get("album", {}).get(
-            "maximum_bit_depth"
-        )
-        maximum_sampling_rate = track_item.get("album", {}).get(
-            "maximum_sampling_rate"
-        )
+        maximum_bit_depth = track_item.get("maximum_bit_depth", 0)
+        maximum_sampling_rate = track_item.get("maximum_sampling_rate", 0)
         if maximum_bit_depth < 24:
             self.maximum_format_id = audio_format["flac"]
         elif maximum_sampling_rate <= 96:
