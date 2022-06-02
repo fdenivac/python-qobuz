@@ -10,26 +10,32 @@ class Album(object):
         Dictionary as returned from the JSON-API to represent a album
 
         Keys should include:
-        'id', 'title', 'tracks_count', 'released_at', 'artist', 'images'
+        'id', 'title', 'tracks_count', 'media_count', 'released_at', 'artist', 'images', 'genre'
     """
 
     __slots__ = [
         "id",
         "title",
+        "version",
         "images",
         "tracks_count",
+        "media_count",
         "released_at",
         "artist",
+        "genre",
         "_tracks",
     ]
 
     def __init__(self, album_item):
         self.id = album_item.get("id")
         self.title = album_item.get("title")
+        self.version = album_item.get("version")
         self.images = album_item.get("image")       # dict of urls on images
         self.tracks_count = album_item.get("tracks_count")
+        self.media_count = album_item.get("media_count")
         self.released_at = album_item.get("released_at")
         self.artist = qobuz.Artist(album_item["artist"])
+        self.genre = album_item.get("genre")['name']
         self._tracks = None
 
 
