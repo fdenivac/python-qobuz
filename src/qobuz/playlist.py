@@ -66,7 +66,7 @@ class Playlist(object):
         if raw:
             return playlist
 
-        return [Track(t) for t in playlist["tracks"]["items"]]
+        return [Track(t, user=self._user) for t in playlist["tracks"]["items"]]
 
     def _split_into_chunks(self, iterable, chunk_size):
         """Split a iterable into smaller chunks.

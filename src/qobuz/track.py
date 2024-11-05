@@ -34,9 +34,10 @@ class Track(object):
         "performers",
         "_performer_id",
         "maximum_format_id",
+        "_user",
     ]
 
-    def __init__(self, track_item, album=None):
+    def __init__(self, track_item, album=None, user=None):
         self.id = track_item.get("id")
         self.playlist_track_id = track_item.get("playlist_track_id")
         self.title = track_item.get("title")
@@ -64,6 +65,7 @@ class Track(object):
             self.maximum_format_id = audio_format["hires"]
         else:
             self.maximum_format_id = audio_format["hires_hsr"]
+        self._user = user
 
     def __eq__(self, other):
         return (
@@ -82,7 +84,7 @@ class Track(object):
             return Artist(empty_item)
 
         if self._artist is None:
-            self._artist = Artist.from_id(self._performer_id)
+            self._artist = Artist.from_id(self._performer_id, self._user)
         return self._artist
 
     @property

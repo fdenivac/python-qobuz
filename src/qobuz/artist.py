@@ -13,15 +13,16 @@ class Artist(object):
         'id', 'name', 'picture', 'slug', 'album_count', 'biography'
     """
 
-    __slots__ = ["id", "name", "picture", "slug", "albums_count", "biography"]
+    __slots__ = ["id", "name", "picture", "slug", "albums_count", "biography", "_user"]
 
-    def __init__(self, artist_item):
+    def __init__(self, artist_item, user=None):
         self.id = artist_item.get("id")
         self.name = artist_item.get("name")
         self.picture = artist_item.get("picture")
         self.slug = artist_item.get("slug")
         self.albums_count = artist_item.get("albums_count")
         self.biography = artist_item.get("biography", {}).get("summary")
+        self._user = user
 
     def __eq__(self, other):
         return (
@@ -73,8 +74,9 @@ class Artist(object):
         return [qobuz.Album(a) for a in albums["albums"]["items"]]
 
     @classmethod
-    def from_id(cls, id):
-        return cls(qobuz.api.request("artist/get", artist_id=id))
+    def from_id(cls, id, user=None):
+        token = user.auth_token if user is not None else None
+        return cls(qobuz.api.request("artist/get", artist_id=id, user_auth_token=token))
 
     @classmethod
     def search(cls, artist, limit=50, offset=0, raw=False):

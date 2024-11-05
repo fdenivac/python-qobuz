@@ -1,7 +1,7 @@
 # python-qobuz
 
 Unofficial python library for the [Qobuz-API  (project removed)](https://github.com/Qobuz/api-documentation).<br>
-Cloned from [python-qobuz](https://github.com/taschenb/python-qobuz)
+Cloned and updated from [python-qobuz](https://github.com/taschenb/python-qobuz)
 
 ## Installation
 

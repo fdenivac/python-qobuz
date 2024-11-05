@@ -226,18 +226,18 @@ class User(object):
             return favorites
 
         if fav_type == "artists":
-            return [Artist(f) for f in favorites["artists"]["items"]]
+            return [Artist(f, user=self) for f in favorites["artists"]["items"]]
         if fav_type == "albums":
             return [Album(f) for f in favorites["albums"]["items"]]
         if fav_type == "tracks":
-            return [Track(f) for f in favorites["tracks"]["items"]]
+            return [Track(f, user=self) for f in favorites["tracks"]["items"]]
         else:
-            all_favorites = [Artist(f) for f in favorites["artists"]["items"]]
+            all_favorites = [Artist(f, user=self) for f in favorites["artists"]["items"]]
             all_favorites.append(
                 Album(f) for f in favorites["albums"]["items"]
             )
             all_favorites.append(
-                Track(f) for f in favorites["tracks"]["items"]
+                Track(f, user=self) for f in favorites["tracks"]["items"]
             )
             return all_favorites
 
