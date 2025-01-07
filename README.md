@@ -17,7 +17,6 @@ or
 In order to use the library, your application needs a valid APP_ID.
 For streaming audio, you also need a valid APP_SECRET.
 Both id and secret can be requested from [api@qobuz.com](mailto:api@qobuz.com).<br>
-For retrieve APP_ID and APP_SECRET, have look on  TODO
 
 ```python
 import qobuz
