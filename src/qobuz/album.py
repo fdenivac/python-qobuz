@@ -24,9 +24,10 @@ class Album(object):
         "artist",
         "genre",
         "_tracks",
+        "_user",
     ]
 
-    def __init__(self, album_item):
+    def __init__(self, album_item, user=None):
         self.id = album_item.get("id")
         self.title = album_item.get("title")
         self.version = album_item.get("version")
@@ -37,6 +38,7 @@ class Album(object):
         self.artist = qobuz.Artist(album_item["artist"])
         self.genre = album_item.get("genre")['name']
         self._tracks = None
+        self._user = user
 
 
     @property
@@ -51,7 +53,7 @@ class Album(object):
         return self._tracks
 
     def _update_tracks(self):
-        resp = qobuz.api.request("album/get", album_id=self.id)
+        resp = qobuz.api.request("album/get", album_id=self.id, user_auth_token=self._user.auth_token if self._user is not None else None)
 
         self._tracks = [
             qobuz.Track(t, album=self) for t in resp["tracks"]["items"]
@@ -67,11 +69,11 @@ class Album(object):
         )
 
     @classmethod
-    def from_id(cls, id):
-        return cls(qobuz.api.request("album/get", album_id=id))
+    def from_id(cls, id, user=None):
+        return cls(qobuz.api.request("album/get", album_id=id, user_auth_token=user.auth_token if user is not None else None), user)
 
     @classmethod
-    def get_featured(cls, type="new-releases", limit=50, offset=0):
+    def get_featured(cls, type="new-releases", limit=50, offset=0, user=None):
         """Get featured albums.
 
         Parameters
@@ -84,13 +86,13 @@ class Album(object):
             re-release-of-the-week
         """
         albums = qobuz.api.request(
-            "album/getFeatured", type=type, offset=offset, limit=limit
+            "album/getFeatured", type=type, offset=offset, limit=limit, user_auth_token=user.auth_token if user is not None else None
         )
 
-        return [cls(a) for a in albums["albums"]["items"]]
+        return [cls(a, user) for a in albums["albums"]["items"]]
 
     @classmethod
-    def search(cls, query, limit=50, offset=0, raw=False):
+    def search(cls, query, limit=50, offset=0, raw=False, user=None):
         """Search for a album.
 
         Parameters
@@ -109,11 +111,12 @@ class Album(object):
         list of Album
             Resulting albums for the search query
         """
+        token = user.auth_token if user is not None else None
         albums = qobuz.api.request(
-            "album/search", query=query, offset=offset, limit=limit
+            "album/search", query=query, offset=offset, limit=limit, user_auth_token=token
         )
 
         if raw:
             return albums
 
-        return [cls(a) for a in albums["albums"]["items"]]
+        return [cls(a, user) for a in albums["albums"]["items"]]

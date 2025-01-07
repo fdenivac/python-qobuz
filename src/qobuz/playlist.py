@@ -156,7 +156,7 @@ class Playlist(object):
         return cls(playlist, user=user)
 
     @classmethod
-    def search(cls, query, limit=50, offset=0):
+    def search(cls, query, limit=50, offset=0, user=None):
         """Search for a playlist.
 
         Parameters
@@ -174,7 +174,9 @@ class Playlist(object):
             Resulting playlists for the search query
         """
         playlists = api.request(
-            "playlist/search", query=query, limit=limit, offset=offset
-        )
+            "playlist/search", 
+            query=query, limit=limit, offset=offset,
+            user_auth_token=user.auth_token if user is not None else None,
+            )
 
-        return [cls(p) for p in playlists["playlists"]["items"]]
+        return [cls(p, user) for p in playlists["playlists"]["items"]]
