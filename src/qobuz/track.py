@@ -19,7 +19,7 @@ class Track(object):
 
         Keys should include:
         'id', 'playlist_track_id', 'title', 'album', 'performer', 'duration', 'media_number',
-        'track_number', 'performers'
+        'track_number', 'performers', artist_name
     """
 
     __slots__ = [
@@ -32,6 +32,7 @@ class Track(object):
         "track_number",
         "_artist",
         "performers",
+        "artist_name",
         "_performer_id",
         "maximum_format_id",
         "_user",
@@ -54,8 +55,11 @@ class Track(object):
             for char in '\r\n':
                 self.performers = self.performers.replace(char,'')
             self.performers = self.performers.split(' - ')
+        # _performer_id : id for Artist object
         self._performer_id = track_item.get("performer", {}).get("id")
         self._artist = None
+        # artist_name is same that Artist.from_id(_performer_id).name
+        self.artist_name = track_item.get("performer", {}).get("name")
 
         maximum_bit_depth = track_item.get("maximum_bit_depth", 0)
         maximum_sampling_rate = track_item.get("maximum_sampling_rate", 0)
