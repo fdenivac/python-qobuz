@@ -69,8 +69,12 @@ class Album(object):
         )
 
     @classmethod
-    def from_id(cls, id, user=None):
-        return cls(qobuz.api.request("album/get", album_id=id, user_auth_token=user.auth_token if user is not None else None), user)
+    def from_id(cls, id, user=None, raw=False):
+        datas = qobuz.api.request("album/get", album_id=id, user_auth_token=user.auth_token if user is not None else None)
+        if raw:
+            return datas
+        else:
+            return cls(datas, user)
 
     @classmethod
     def get_featured(cls, type="new-releases", limit=50, offset=0, user=None):

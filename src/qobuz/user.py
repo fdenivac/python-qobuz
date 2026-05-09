@@ -74,7 +74,7 @@ class User(object):
         """
         def get_ids(args, name):
             value = args.get(name)
-            if not value: 
+            if not value:
                 return []
             if not isinstance(value, list):
                 value = [value]
@@ -88,30 +88,30 @@ class User(object):
         album_ids = get_ids(kwargs, 'albums')
         track_ids = get_ids(kwargs, 'tracks')
 
-        params_split = list()
+        params_split = []
         while True:
             params = {}
             params["user_auth_token"] = self.auth_token
             cur_size = 0
 
             ids, artist_ids = artist_ids[:chunk_size], artist_ids[chunk_size:]
-            if len(ids):
+            if ids:
                 params["artist_ids"] = ids
-                cur_size += len(ids) 
+                cur_size += len(ids)
                 if cur_size == chunk_size:
                     params_split.append(params)
                     continue
 
             ids, album_ids = album_ids[:chunk_size - cur_size], album_ids[chunk_size - cur_size:]
-            if len(ids):
+            if ids:
                 params["album_ids"] = ids
-                cur_size += len(ids) 
+                cur_size += len(ids)
                 if cur_size == chunk_size:
                     params_split.append(params)
                     continue
 
             ids, track_ids = track_ids[:chunk_size - cur_size], track_ids[chunk_size - cur_size:]
-            if len(ids):
+            if ids:
                 params["track_ids"] = ids
                 cur_size += len(ids)
                 if cur_size == chunk_size:
@@ -137,17 +137,17 @@ class User(object):
         Returns
         -------
         bool
-            Successfully added to favorites
+            True if all items were successfully added, False if any failed
         """
-
-        for params in  self._get_params_splitted(kwargs):
+        all_success = True
+        for params in self._get_params_splitted(kwargs):
             status = api.request(
                 "favorite/create",
                 **params
             )
             if status.get("status") != "success":
-                return False
-        return True
+                all_success = False
+        return all_success
 
     def favorites_del(self, **kwargs):
         """Delete artists/albums/tracks from favorites.
@@ -161,17 +161,17 @@ class User(object):
         Returns
         -------
         bool
-            Successfully deleted from favorites
+            True if all items were successfully deleted, False if any failed
         """
-
-        for params in  self._get_params_splitted(kwargs):
+        all_success = True
+        for params in self._get_params_splitted(kwargs):
             status = api.request(
                 "favorite/delete",
                 **params,
             )
             if status.get("status") != "success":
-                return False
-        return True
+                all_success = False
+        return all_success
 
     def favorites_status(self, obj):
         """Get status whether obj is in the favorites.

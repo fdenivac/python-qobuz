@@ -2,11 +2,7 @@ import hashlib
 import qobuz
 import requests
 import time
-try:
-    from urllib.parse import urljoin
-except ImportError:
-    # python2
-    from urlparse import urljoin
+from urllib.parse import urljoin
 
 
 API_URL = "https://www.qobuz.com/api.json/0.2/"
