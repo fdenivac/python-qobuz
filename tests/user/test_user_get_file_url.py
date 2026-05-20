@@ -1,18 +1,24 @@
 import pytest
+from dotenv import dotenv_values
 import qobuz
+from qobuz.qopy import qobuz_api, API_URL
 import responses
 import time
 
 from tests.resources.fixtures import user, track
 from tests.resources.responses import get_file_url_json
 
+config = dotenv_values("tests/.env")
 
 @pytest.fixture
 def app():
-    qobuz.api.register_app(
-        app_id="request_from_api@qobuz.com",
-        app_secret="request_from_@api@qobuz.com",
+    qobuz_api.connect_with_token(
+        config["user_id"],
+        config["auth_token"],
+        config["app_id"],
+        config["secrets"].split(","),
     )
+
 
 
 def get_url(track_id, format_id, user_auth_token, request_ts, intent="stream"):
@@ -21,25 +27,25 @@ def get_url(track_id, format_id, user_auth_token, request_ts, intent="stream"):
         "format_id": format_id,
         "user_auth_token": user_auth_token,
         "intent": intent,
-        "app_id": qobuz.api.APP_ID,
+        # "app_id": qobuz.api.APP_ID,
     }
 
-    request_sig = qobuz.api._get_request_sig(
-        timestamp=request_ts,
-        url=qobuz.api.API_URL + "track/getFileUrl",
-        **params
-    )
+    # request_sig = qobuz.api._get_request_sig(
+    #     timestamp=request_ts,
+    #     url=qobuz.api.API_URL + "track/getFileUrl",
+    #     **params
+    # )
 
     return (
-        qobuz.api.API_URL
+        API_URL
         + "track/getFileUrl"
         + "?track_id={}".format(track_id)
         + "&intent={}".format(intent)
-        + "&request_ts={}".format(request_ts)
-        + "&request_sig={}".format(request_sig)
+        # + "&request_ts={}".format(request_ts)
+        # + "&request_sig={}".format(request_sig)
         + "&format_id={}".format(format_id)
-        + "&user_auth_token={}".format(user_auth_token)
-        + "&app_id={}".format(qobuz.api.APP_ID)
+        # + "&user_auth_token={}".format(user_auth_token)
+        # + "&app_id={}".format(qobuz.api.APP_ID)
     )
 
 

@@ -1,14 +1,23 @@
 import pytest
+from dotenv import dotenv_values
 import qobuz
+from qobuz.qopy import qobuz_api, API_URL
 import responses
 
 from tests.resources.responses import track_search_json, artist_get_albums_json
 from tests.resources.fixtures import artist, track
 
+config = dotenv_values("tests/.env")
+
 
 @pytest.fixture
 def app():
-    qobuz.api.register_app(app_id="request_from_api@qobuz.com")
+    qobuz_api.connect_with_token(
+        config["user_id"],
+        config["auth_token"],
+        config["app_id"],
+        config["secrets"].split(","),
+    )
 
 
 def test_track_init(app):
@@ -32,7 +41,7 @@ def test_track_artist_lookup(app, track, artist):
     with responses.RequestsMock() as response_mock:
         response_mock.add(
             responses.GET,
-            url=qobuz.api.API_URL + "artist/get",
+            url=API_URL + "artist/get",
             json=artist_get_albums_json,
             status=200,
             match_querystring=False,

@@ -1,4 +1,5 @@
 import qobuz
+from qobuz.qopy import qobuz_api
 
 
 class Artist(object):
@@ -10,19 +11,27 @@ class Artist(object):
         Dictionary as returned from the JSON-API to represent an artist
 
         Keys should include:
-        'id', 'name', 'picture', 'slug', 'album_count', 'biography'
+        'id', 'name', 'picture', 'slug', 'album_count', 'biography', 'favorited_at'
     """
 
-    __slots__ = ["id", "name", "picture", "slug", "albums_count", "biography", "_user"]
+    __slots__ = [
+        "id",
+        "name",
+        "picture",
+        "slug",
+        "albums_count",
+        "biography",
+        "favorited_at",
+    ]
 
-    def __init__(self, artist_item, user=None):
+    def __init__(self, artist_item):
         self.id = artist_item.get("id")
         self.name = artist_item.get("name")
         self.picture = artist_item.get("picture")
         self.slug = artist_item.get("slug")
         self.albums_count = artist_item.get("albums_count")
         self.biography = artist_item.get("biography", {}).get("summary")
-        self._user = user
+        self.favorited_at = artist_item.get("favorited_at")
 
     def __eq__(self, other):
         return (
@@ -38,7 +47,8 @@ class Artist(object):
         return "artist"
 
     def get_all_tracks(self, offset=0, limit=50):
-        res = qobuz.api.request(
+        """Get tracks for this artist"""
+        res = qobuz_api.api_call(
             "artist/get",
             artist_id=self.id,
             extra="tracks",
@@ -63,7 +73,7 @@ class Artist(object):
         list of Album
             Albums from the artist
         """
-        albums = qobuz.api.request(
+        albums = qobuz_api.api_call(
             "artist/get",
             artist_id=self.id,
             extra="albums",
@@ -74,9 +84,9 @@ class Artist(object):
         return [qobuz.Album(a) for a in albums["albums"]["items"]]
 
     @classmethod
-    def from_id(cls, id, user=None):
-        token = user.auth_token if user is not None else None
-        return cls(qobuz.api.request("artist/get", artist_id=id, user_auth_token=token))
+    def from_id(cls, id):
+        """Build Artist from id"""
+        return cls(qobuz_api.api_call("artist/get", artist_id=id))
 
     @classmethod
     def search(cls, artist, limit=50, offset=0, raw=False):
@@ -98,7 +108,7 @@ class Artist(object):
         list of Artist
             Resulting playlists for the search query
         """
-        req = qobuz.api.request(
+        req = qobuz_api.api_call(
             "artist/search", query=artist, limit=limit, offset=offset
         )
 

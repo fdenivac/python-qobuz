@@ -1,22 +1,31 @@
 import pytest
+from dotenv import dotenv_values
 import qobuz
+from qobuz.qopy import qobuz_api, API_URL
 import responses
 
 from tests.resources.responses import playlist_create_json
 from tests.resources.fixtures import playlist
 
 
+config = dotenv_values("tests/.env")
+
+
 @pytest.fixture
 def app():
-    qobuz.api.register_app(app_id="request_from_api@qobuz.com")
+    qobuz_api.connect_with_token(
+        config["user_id"],
+        config["auth_token"],
+        config["app_id"],
+        config["secrets"].split(","),
+    )
 
 
 def get_url(playlist_id):
     return (
-        qobuz.api.API_URL
+        API_URL
         + "playlist/get"
         + "?playlist_id={}".format(playlist_id)
-        + "&app_id={}".format(qobuz.api.APP_ID)
     )
 
 

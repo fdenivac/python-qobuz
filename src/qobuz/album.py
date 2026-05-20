@@ -1,4 +1,5 @@
 import qobuz
+from qobuz.qopy import qobuz_api
 
 
 class Album(object):
@@ -10,7 +11,7 @@ class Album(object):
         Dictionary as returned from the JSON-API to represent a album
 
         Keys should include:
-        'id', 'title', 'tracks_count', 'media_count', 'released_at', 'artist', 'images', 'genre'
+        'id', 'title', 'tracks_count', 'media_count', 'released_at', 'artist', 'images', 'genre', 'favorited_at'
     """
 
     __slots__ = [
@@ -23,23 +24,22 @@ class Album(object):
         "released_at",
         "artist",
         "genre",
+        "favorited_at",
         "_tracks",
-        "_user",
     ]
 
-    def __init__(self, album_item, user=None):
+    def __init__(self, album_item):
         self.id = album_item.get("id")
         self.title = album_item.get("title")
         self.version = album_item.get("version")
-        self.images = album_item.get("image")       # dict of urls on images
+        self.images = album_item.get("image")  # dict of urls on images
         self.tracks_count = album_item.get("tracks_count")
         self.media_count = album_item.get("media_count")
         self.released_at = album_item.get("released_at")
         self.artist = qobuz.Artist(album_item["artist"])
-        self.genre = album_item.get("genre")['name']
+        self.genre = album_item.get("genre")["name"]
+        self.favorited_at = album_item.get("favorited_at")
         self._tracks = None
-        self._user = user
-
 
     @property
     def type(self):
@@ -47,17 +47,16 @@ class Album(object):
 
     @property
     def tracks(self):
+        """get tracks for this album"""
         if self._tracks is None:
             self._update_tracks()
 
         return self._tracks
 
     def _update_tracks(self):
-        resp = qobuz.api.request("album/get", album_id=self.id, user_auth_token=self._user.auth_token if self._user is not None else None)
+        resp = qobuz_api.api_call("album/get", album_id=self.id)
 
-        self._tracks = [
-            qobuz.Track(t, album=self) for t in resp["tracks"]["items"]
-        ]
+        self._tracks = [qobuz.Track(t, album=self) for t in resp["tracks"]["items"]]
 
     def __eq__(self, other):
         return (
@@ -69,15 +68,18 @@ class Album(object):
         )
 
     @classmethod
-    def from_id(cls, id, user=None, raw=False):
-        datas = qobuz.api.request("album/get", album_id=id, user_auth_token=user.auth_token if user is not None else None)
+    def from_id(cls, id, raw=False):
+        datas = qobuz_api.api_call(
+            "album/get",
+            album_id=id,
+        )
         if raw:
             return datas
         else:
-            return cls(datas, user)
+            return cls(datas)
 
     @classmethod
-    def get_featured(cls, type="new-releases", limit=50, offset=0, user=None):
+    def get_featured(cls, type="new-releases", limit=50, offset=0):
         """Get featured albums.
 
         Parameters
@@ -89,14 +91,17 @@ class Album(object):
             ideal-discography, qobuzissims, album-of-the-week,
             re-release-of-the-week
         """
-        albums = qobuz.api.request(
-            "album/getFeatured", type=type, offset=offset, limit=limit, user_auth_token=user.auth_token if user is not None else None
+        albums = qobuz_api.api_call(
+            "album/getFeatured",
+            type=type,
+            offset=offset,
+            limit=limit,
         )
 
-        return [cls(a, user) for a in albums["albums"]["items"]]
+        return [cls(a) for a in albums["albums"]["items"]]
 
     @classmethod
-    def search(cls, query, limit=50, offset=0, raw=False, user=None):
+    def search(cls, query, limit=50, offset=0, raw=False):
         """Search for a album.
 
         Parameters
@@ -115,12 +120,14 @@ class Album(object):
         list of Album
             Resulting albums for the search query
         """
-        token = user.auth_token if user is not None else None
-        albums = qobuz.api.request(
-            "album/search", query=query, offset=offset, limit=limit, user_auth_token=token
+        albums = qobuz_api.api_call(
+            "album/search",
+            query=query,
+            offset=offset,
+            limit=limit,
         )
 
         if raw:
             return albums
 
-        return [cls(a, user) for a in albums["albums"]["items"]]
+        return [cls(a) for a in albums["albums"]["items"]]

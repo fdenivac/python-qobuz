@@ -1,13 +1,9 @@
-import hashlib
-import uuid
-
-from qobuz import api, Artist, Album, Track, Playlist
+from qobuz import Artist, Album, Track, Playlist
+from qobuz.qopy import qobuz_api
 
 
 class User(object):
     """Own user to be logged in.
-
-    Some operations require an authenticated user.
 
     Parameters
     ----------
@@ -17,61 +13,9 @@ class User(object):
         Password for the username
     """
 
-    def __init__(self, username, password, device_manufacturer_id=None):
-        self.username = username
-        if device_manufacturer_id is None:
-            device_manufacturer_id = uuid.uuid4()
-
-        login_resp = api.request(
-            "user/login",
-            username=username,
-            password=self._hash_password(password),
-            device_manufacturer_id=device_manufacturer_id,
-        )
-
-        self.auth_token = login_resp["user_auth_token"]
-        self.id = login_resp["user"]["id"]
-        self.credential_id = login_resp["user"]["credential"]["id"]
-        self.device_id = login_resp["user"]["device"]["id"]
-
-    @staticmethod
-    def _hash_password(password):
-        """Hash the password with MD5.
-
-        Parameters
-        ----------
-        password: str
-            Plain password
-
-        Returns
-        -------
-        str
-            Hashed password to be used for logging in
-        """
-        return hashlib.md5(password.encode()).hexdigest()
-
-    @staticmethod
-    def reset_password(username):
-        """Request the resetting of the current password.
-
-        Parameters
-        ----------
-        username: str
-            Username to be sent a email with instructions.
-
-        Returns
-        -------
-        bool
-            Successfully requested
-        """
-        resp = api.request("user/resetPassword", username=username)
-
-        return resp.get("status") == "success"
-
-
     def _get_params_splitted(self, kwargs, chunk_size=50):
-        """Get all ids from kwarg, split params into chunk
-        """
+        """Get all ids from kwarg, split params into chunk"""
+
         def get_ids(args, name):
             value = args.get(name)
             if not value:
@@ -84,14 +28,13 @@ class User(object):
                 return value
             return [v.id for v in value]
 
-        artist_ids = get_ids(kwargs, 'artists')
-        album_ids = get_ids(kwargs, 'albums')
-        track_ids = get_ids(kwargs, 'tracks')
+        artist_ids = get_ids(kwargs, "artists")
+        album_ids = get_ids(kwargs, "albums")
+        track_ids = get_ids(kwargs, "tracks")
 
         params_split = []
         while True:
             params = {}
-            params["user_auth_token"] = self.auth_token
             cur_size = 0
 
             ids, artist_ids = artist_ids[:chunk_size], artist_ids[chunk_size:]
@@ -102,7 +45,10 @@ class User(object):
                     params_split.append(params)
                     continue
 
-            ids, album_ids = album_ids[:chunk_size - cur_size], album_ids[chunk_size - cur_size:]
+            ids, album_ids = (
+                album_ids[: chunk_size - cur_size],
+                album_ids[chunk_size - cur_size :],
+            )
             if ids:
                 params["album_ids"] = ids
                 cur_size += len(ids)
@@ -110,7 +56,10 @@ class User(object):
                     params_split.append(params)
                     continue
 
-            ids, track_ids = track_ids[:chunk_size - cur_size], track_ids[chunk_size - cur_size:]
+            ids, track_ids = (
+                track_ids[: chunk_size - cur_size],
+                track_ids[chunk_size - cur_size :],
+            )
             if ids:
                 params["track_ids"] = ids
                 cur_size += len(ids)
@@ -122,8 +71,13 @@ class User(object):
                 params_split.append(params)
             break
 
+        # reformat (api syntax changed)
+        #   old way : [{'album_ids': '0075596094863','lqp0ziq8w7n83'}]
+        #   new way : [{'album_ids': '0075596094863,lqp0ziq8w7n83}]
+        for dtype in params_split:
+            for key in dtype:
+                dtype[key] = ','.join(dtype[key])
         return params_split
-
 
     def favorites_add(self, **kwargs):
         """Add artists/albums/tracks to user's favorites.
@@ -141,10 +95,7 @@ class User(object):
         """
         all_success = True
         for params in self._get_params_splitted(kwargs):
-            status = api.request(
-                "favorite/create",
-                **params
-            )
+            status = qobuz_api.api_call("favorite/create", **params)
             if status.get("status") != "success":
                 all_success = False
         return all_success
@@ -165,7 +116,7 @@ class User(object):
         """
         all_success = True
         for params in self._get_params_splitted(kwargs):
-            status = api.request(
+            status = qobuz_api.api_call(
                 "favorite/delete",
                 **params,
             )
@@ -186,11 +137,10 @@ class User(object):
         bool
             Successfully deleted from favorites
         """
-        status = api.request(
+        status = qobuz_api.api_call(
             "favorite/status",
             item=obj.id,
             type=obj.type,
-            user_auth_token=self.auth_token,
         )
 
         return status.get("status") == "true"
@@ -214,49 +164,45 @@ class User(object):
         list
             List containing Artist/Album/Track objects
         """
-        favorites = api.request(
+        favorites = qobuz_api.api_call(
             "favorite/getUserFavorites",
             type=fav_type,
             limit=limit,
             offset=offset,
-            user_auth_token=self.auth_token,
         )
 
         if raw:
             return favorites
 
         if fav_type == "artists":
-            return [Artist(f, user=self) for f in favorites["artists"]["items"]]
+            return [Artist(f) for f in favorites["artists"]["items"]]
         if fav_type == "albums":
             return [Album(f) for f in favorites["albums"]["items"]]
         if fav_type == "tracks":
-            return [Track(f, user=self) for f in favorites["tracks"]["items"]]
+            return [Track(f) for f in favorites["tracks"]["items"]]
         else:
-            all_favorites = [Artist(f, user=self) for f in favorites["artists"]["items"]]
+            all_favorites = [Artist(f) for f in favorites["artists"]["items"]]
+            all_favorites.append(Album(f) for f in favorites["albums"]["items"])
             all_favorites.append(
-                Album(f) for f in favorites["albums"]["items"]
-            )
-            all_favorites.append(
-                Track(f, user=self) for f in favorites["tracks"]["items"]
+                Track(
+                    f,
+                )
+                for f in favorites["tracks"]["items"]
             )
             return all_favorites
 
     def playlists_get(self, filter="owner", limit=50, offset=0, raw=False):
-        result = api.request(
+        result = qobuz_api.api_call(
             "playlist/getUserPlaylists",
             filter=filter,
             limit=limit,
             offset=offset,
-            user_auth_token=self.auth_token,
         )
-
         if raw:
             return result
-        return [Playlist(p, user=self) for p in result["playlists"]["items"]]
+        return [Playlist(p) for p in result["playlists"]["items"]]
 
-    def playlist_create(
-        self, name, description=None, is_public=0, is_collaborative=0
-    ):
+    def playlist_create(self, name, description=None, is_public=0, is_collaborative=0):
         """Create a new playlist.
 
         Parameters
@@ -270,13 +216,12 @@ class User(object):
         is_collaborative: bool
             Flag to make the playlist collaborative.
         """
-        playlist = api.request(
+        playlist = qobuz_api.api_call(
             "playlist/create",
             name=name,
             description=description,
             is_public=is_public,
             is_collaborative=is_collaborative,
-            user_auth_token=self.auth_token,
         )
 
         return Playlist(playlist)
@@ -298,10 +243,9 @@ class User(object):
             id = playlist
         else:
             id = playlist.id
-        status = api.request(
+        status = qobuz_api.api_call(
             "playlist/delete",
             playlist_id=id,
-            user_auth_token=self.auth_token,
         )
 
         return status.get("status") == "success"
@@ -328,13 +272,12 @@ class User(object):
         str
             URL to the appropriate file
         """
-        resp = api.request(
+        resp = qobuz_api.api_call(
             "track/getFileUrl",
             signed=True,
             track_id=track_id,
             format_id=format_id,
             intent=intent,
-            user_auth_token=self.auth_token,
         )
 
         return resp.get("url")

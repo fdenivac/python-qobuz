@@ -1,0 +1,59 @@
+#
+# pyproject.toml for LrViewer application
+#
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python-qobuz"
+dynamic = ["version", "readme"]
+requires-python = ">=3.11"
+dependencies = [
+    "requests==2.32.3",
+    "cryptography==47.0.0",
+]
+description = "Python library for Qobuz API"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [
+    {name = "fdenivac", email = "fdenivac@gmail.com"},
+]
+maintainers = [
+  {name = "fdenivac", email = "fdenivac@gmail.com"}
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS :: MacOS X",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Multimedia :: Sound/Audio",
+
+]
+
+
+[tool.setuptools.dynamic]
+version = {attr = "qobuz._version.__version__"}
+readme = {file = ["README.md"]}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+# exclude = ["obsolete", "build"]
+namespaces = true
+
+
+[project.urls]
+"Homepage" = "https://github.com/fdenivac/python-qobuz"
+"Bug Reports" = "https://github.com/fdenivac/python-qobuz/issues"
+"Source" = "https://github.com/fdenivac/python-qobuz"
+
+

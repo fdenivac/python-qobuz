@@ -1,4 +1,5 @@
-from qobuz import api, Track
+from qobuz import Track
+from qobuz.qopy import qobuz_api
 
 
 class Playlist(object):
@@ -11,13 +12,20 @@ class Playlist(object):
 
         Keys should include:
         'id', 'name', 'description', 'duration', 'public', 'collaborative', 'tracks_count', 'update_at',
-    user: User
-        Add when the playlist is your own, otherwise tracks won't be accessible
     """
 
-    __slots__ = ["id", "name", "description", "duration", "public", "collaborative", "tracks_count", "updated_at", "_user"]
+    __slots__ = [
+        "id",
+        "name",
+        "description",
+        "duration",
+        "public",
+        "collaborative",
+        "tracks_count",
+        "updated_at",
+    ]
 
-    def __init__(self, playlist_item, user=None):
+    def __init__(self, playlist_item):
         self.id = playlist_item.get("id")
         self.name = playlist_item.get("name")
         self.description = playlist_item.get("description")
@@ -26,7 +34,6 @@ class Playlist(object):
         self.collaborative = playlist_item.get("is_collaborative")
         self.tracks_count = playlist_item.get("tracks_count")
         self.updated_at = playlist_item.get("updated_at")
-        self._user = user
 
     def __eq__(self, other):
         return (
@@ -52,21 +59,18 @@ class Playlist(object):
         lst
             List of Tracks
         """
-        token = self._user.auth_token if self._user else None
-
-        playlist = api.request(
+        playlist = qobuz_api.api_call(
             "playlist/get",
             playlist_id=self.id,
             extra="tracks",
             limit=limit,
-            user_auth_token=token,
             offset=offset,
         )
 
         if raw:
             return playlist
 
-        return [Track(t, user=self._user) for t in playlist["tracks"]["items"]]
+        return [Track(t) for t in playlist["tracks"]["items"]]
 
     def _split_into_chunks(self, iterable, chunk_size):
         """Split a iterable into smaller chunks.
@@ -87,7 +91,7 @@ class Playlist(object):
 
         return splitted
 
-    def add_tracks(self, tracks, own, max_elements_per_request=50):
+    def add_tracks(self, tracks, max_elements_per_request=50):
         """Add tracks to the playlist.
 
         In order to limit the length of the resulting URL for a very large
@@ -108,15 +112,13 @@ class Playlist(object):
             track_ids = [t.id for t in tracks]
 
         for c in self._split_into_chunks(track_ids, max_elements_per_request):
-            api.request(
+            qobuz_api.api_call(
                 "playlist/addTracks",
                 playlist_id=self.id,
-                comma_encoding=False,
                 track_ids=",".join(map(str, c)),
-                user_auth_token=own.auth_token,
             )
 
-    def del_tracks(self, tracks, own, max_elements_per_request=50):
+    def del_tracks(self, tracks, max_elements_per_request=50):
         """Delete tracks from the playlist.
 
         In order to limit the length of the resulting URL for a very large
@@ -137,26 +139,29 @@ class Playlist(object):
             track_ids = [t.playlist_track_id for t in tracks]
 
         for c in self._split_into_chunks(track_ids, max_elements_per_request):
-            api.request(
+            qobuz_api.api_call(
                 "playlist/deleteTracks",
                 playlist_id=self.id,
-                comma_encoding=False,
                 playlist_track_ids=",".join(map(str, c)),
-                user_auth_token=own.auth_token,
             )
 
     @classmethod
-    def from_id(cls, playlist_id, user=None):
-        token = user.auth_token if user is not None else None
-
-        playlist = api.request(
-            "playlist/get", playlist_id=playlist_id, user_auth_token=token
+    def from_id(cls, playlist_id):
+        """Build Playlist from id"""
+        playlist = qobuz_api.api_call(
+            "playlist/get",
+            playlist_id=playlist_id,
         )
 
-        return cls(playlist, user=user)
+        return cls(playlist)
 
     @classmethod
-    def search(cls, query, limit=50, offset=0, user=None):
+    def search(
+        cls,
+        query,
+        limit=50,
+        offset=0,
+    ):
         """Search for a playlist.
 
         Parameters
@@ -173,10 +178,11 @@ class Playlist(object):
         list of Playlist
             Resulting playlists for the search query
         """
-        playlists = api.request(
-            "playlist/search", 
-            query=query, limit=limit, offset=offset,
-            user_auth_token=user.auth_token if user is not None else None,
-            )
+        playlists = qobuz_api.api_call(
+            "playlist/search",
+            query=query,
+            limit=limit,
+            offset=offset,
+        )
 
-        return [cls(p, user) for p in playlists["playlists"]["items"]]
+        return [cls(p) for p in playlists["playlists"]["items"]]
